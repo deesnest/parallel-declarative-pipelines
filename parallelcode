@@ -1,18 +1,51 @@
-def call(String username = 'null', String designation = 'null') {
-	echo "This is shared library sendoffUser: ${username}"
-	pipeline {
-		environment {
-			USER_NAME = "$username"
-			DESG = "$designation"
-		}
-		agent any 
-		stages {
-			stage('SENDOF_USER') {
-				steps {
-					echo "Bye $USER_NAME, Nice meeting you !"
-					echo "Designation: $DESG"
-				}	
-			}
-		}
-	}
+pipeline {
+    agent none
+
+    stages {
+        stage("build and deploy on Windows and Linux") {
+            parallel {
+                stage("windows") {
+                    agent {
+                        label "windows"
+                    }
+                    stages {
+                        stage("build") {
+                            steps {
+                                bat "run-build.bat"
+                            }
+                        }
+                        stage("deploy") {
+                            when {
+                                branch "master"
+                            }
+                            steps {
+                                bat "run-deploy.bat"
+                            }
+                        }
+                    }
+                }
+
+                stage("linux") {
+                    agent {
+                        label "linux"
+                    }
+                    stages {
+                        stage("build") {
+                            steps {
+                                sh "./run-build.sh"
+                            }
+                        }
+                        stage("deploy") {
+                             when {
+                                 branch "master"
+                             }
+                             steps {
+                                sh "./run-deploy.sh"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
